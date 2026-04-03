@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Claude Prompt Blueprint</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #e8c547;
+    --accent2: #7c6af5;
+    --accent3: #e05c5c;
+    --text: #e8e6f0;
+    --muted: #6b6880;
+    --soft: #9d9ab0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,245,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,245,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 70px;
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(232,197,71,0.12);
+    border: 1px solid rgba(232,197,71,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+
+  h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--soft);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .step-num.yellow { background: rgba(232,197,71,0.15); color: var(--accent); border: 1px solid rgba(232,197,71,0.3); }
+  .step-num.purple { background: rgba(124,106,245,0.15); color: var(--accent2); border: 1px solid rgba(124,106,245,0.3); }
+  .step-num.red { background: rgba(224,92,92,0.15); color: var(--accent3); border: 1px solid rgba(224,92,92,0.3); }
+  .step-num.teal { background: rgba(52,199,164,0.15); color: #34c7a4; border: 1px solid rgba(52,199,164,0.3); }
+  .step-num.blue { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .card.yellow::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .card.purple::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .card.red::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .card.teal::before { background: linear-gradient(90deg, #34c7a4, transparent); }
+  .card.blue::before { background: linear-gradient(90deg, #60a5fa, transparent); }
+
+  .field {
+    margin-bottom: 18px;
+  }
+  .field:last-child { margin-bottom: 0; }
+
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .field-label .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .field-label .dot.yellow { background: var(--accent); }
+  .field-label .dot.purple { background: var(--accent2); }
+  .field-label .dot.teal { background: #34c7a4; }
+  .field-label .dot.blue { background: #60a5fa; }
+  .field-label .dot.red { background: var(--accent3); }
+
+  .template-block {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--soft);
+    white-space: pre-wrap;
+  }
+
+  .template-block .fill {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .template-block .fill.purple { color: var(--accent2); }
+  .template-block .fill.teal { color: #34c7a4; }
+  .template-block .fill.red { color: var(--accent3); }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 580px) {
+    .tips-grid { grid-template-columns: 1fr; }
+  }
+
+  .tip {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--soft);
+  }
+
+  .tip strong {
+    color: var(--text);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* Full template */
+  .full-template {
+    background: var(--surface);
+    border: 1px solid rgba(232,197,71,0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 48px;
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .full-template-header {
+    background: rgba(232,197,71,0.08);
+    border-bottom: 1px solid rgba(232,197,71,0.15);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .full-template-header span {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .copy-btn {
+    background: rgba(232,197,71,0.12);
+    border: 1px solid rgba(232,197,71,0.3);
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(232,197,71,0.2); }
+  .copy-btn.copied { background: rgba(52,199,164,0.15); border-color: rgba(52,199,164,0.4); color: #34c7a4; }
+
+  .full-template-body {
+    padding: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--soft);
+    white-space: pre-wrap;
+  }
+
+  .full-template-body .comment { color: var(--muted); }
+  .full-template-body .key { color: #60a5fa; font-weight: 500; }
+  .full-template-body .value { color: var(--accent); }
+
+  /* Examples */
+  .example-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    transition: all 0.2s;
+  }
+  .tab.active, .tab:hover {
+    background: rgba(124,106,245,0.15);
+    border-color: rgba(124,106,245,0.4);
+    color: var(--accent2);
+  }
+
+  .example-content { display: none; }
+  .example-content.active { display: block; }
+
+  /* Do / Don't */
+  .do-dont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media(max-width:580px){ .do-dont { grid-template-columns: 1fr; } }
+
+  .do-box, .dont-box {
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .do-box {
+    background: rgba(52,199,164,0.06);
+    border: 1px solid rgba(52,199,164,0.2);
+  }
+  .dont-box {
+    background: rgba(224,92,92,0.06);
+    border: 1px solid rgba(224,92,92,0.2);
+  }
+  .do-box .label { color: #34c7a4; font-weight: 700; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .dont-box .label { color: var(--accent3); font-weight: 700; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .do-box p, .dont-box p { color: var(--soft); font-family: 'DM Mono', monospace; }
+
+  /* divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+  }
+
+  .h2 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.1s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-child(6) { animation-delay: 0.3s; }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge.opt { background: rgba(107,104,128,0.2); color: var(--muted); border: 1px solid rgba(107,104,128,0.2); }
+  .badge.req { background: rgba(224,92,92,0.12); color: var(--accent3); border: 1px solid rgba(224,92,92,0.25); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="tag">Prompt Engineering Guide</div>
+    <h1>The Claude Prompt<br><em>Blueprint</em></h1>
+    <p class="subtitle">A practical template and framework for writing prompts that get exactly what you need from Claude.</p>
+  </div>
+
+  <!-- SECTION 1: ROLE -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num yellow">1</div>
+      <div class="section-title">Set the Role / Persona</div>
+    </div>
+    <div class="card yellow">
+      <div class="field">
+        <div class="field-label"><span class="dot yellow"></span> What to write</div>
+        <p style="font-size:14px;color:var(--soft);line-height:1.6;margin-bottom:12px;">Tell Claude who to act as. This shapes tone, depth, and expertise level.</p>
+        <div class="template-block">You are <span class="fill">[expert role]</span> with deep experience in <span class="fill">[domain]</span>.
+Your communication style is <span class="fill">[tone: concise / detailed / friendly / technical]</span>.</div>
+      </div>
+      <div class="do-dont" style="margin-top:16px;">
+        <div class="do-box"><div class="label">✓ Do</div><p>You are a senior product manager who specializes in B2B SaaS onboarding flows.</p></div>
+        <div class="dont-box"><div class="label">✗ Don't</div><p>Be an expert and help me.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: CONTEXT -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num purple">2</div>
+      <div class="section-title">Provide Project Context <span class="badge req">Most Important</span></div>
+    </div>
+    <div class="card purple">
+      <div class="field">
+        <div class="field-label"><span class="dot purple"></span> Background — what Claude needs to know</div>
+        <div class="template-block"><span class="fill purple">## Project Background</span>
+Project name: <span class="fill">[name]</span>
+What it does: <span class="fill">[1-2 sentence description]</span>
+Target audience: <span class="fill">[who uses this / who reads this]</span>
+Current stage: <span class="fill">[idea / MVP / live product / revision]</span>
+Key constraints: <span class="fill">[budget / time / tech stack / word count / etc.]</span></div>
+      </div>
+      <div class="tip" style="margin-top:12px;">
+        <strong>💡 Pro tip</strong>
+        The more context you give, the less back-and-forth you need. Paste in relevant docs, code, or notes directly — Claude can read and reason over them.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: TASK -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num teal">3</div>
+      <div class="section-title">Define the Task Clearly</div>
+    </div>
+    <div class="card teal">
+      <div class="field">
+        <div class="field-label"><span class="dot teal"></span> Action verb + specific deliverable</div>
+        <div class="template-block">Task: <span class="fill teal">[Write / Analyze / Fix / Plan / Review / Build / Summarize]</span>
+
+Specifically: <span class="fill">[one-sentence description of what to produce]</span>
+
+Scope:
+- Include: <span class="fill">[what must be in the output]</span>
+- Exclude: <span class="fill">[what to leave out]</span></div>
+      </div>
+      <div class="do-dont" style="margin-top:16px;">
+        <div class="do-box"><div class="label">✓ Clear</div><p>Write a 300-word product description for our landing page. Focus on benefits, not features. Exclude pricing.</p></div>
+        <div class="dont-box"><div class="label">✗ Vague</div><p>Write something about our product for the website.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: FORMAT -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num blue">4</div>
+      <div class="section-title">Specify Output Format</div>
+    </div>
+    <div class="card blue">
+      <div class="field">
+        <div class="field-label"><span class="dot blue"></span> Structure, length, and style</div>
+        <div class="template-block">Output format: <span class="fill teal">[bullet list / numbered steps / paragraphs / table / code / JSON / markdown]</span>
+Length: <span class="fill">[word count / number of items / approximate pages]</span>
+Tone: <span class="fill">[formal / casual / persuasive / instructional / conversational]</span>
+Use headers: <span class="fill">[yes / no]</span>
+Show reasoning: <span class="fill">[yes — think step by step / no — just give the result]</span></div>
+      </div>
+      <div class="tips-grid" style="margin-top:14px;">
+        <div class="tip"><strong>For code</strong> Specify language, whether to include comments, and preferred code style.</div>
+        <div class="tip"><strong>For writing</strong> Give a word count range and share 1-2 examples of tone you like.</div>
+        <div class="tip"><strong>For analysis</strong> Ask Claude to think step by step before giving a final answer.</div>
+        <div class="tip"><strong>For lists</strong> Say how many items you want and how detailed each should be.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: EXAMPLES -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num red">5</div>
+      <div class="section-title">Give Examples <span class="badge opt">Optional but powerful</span></div>
+    </div>
+    <div class="card red">
+      <div class="field">
+        <div class="field-label"><span class="dot red"></span> Show what "good" looks like</div>
+        <div class="template-block"><span class="fill red">## Examples</span>
+Good example: <span class="fill">[paste 1-2 examples of the style / format / quality you want]</span>
+
+Bad example (optional): <span class="fill">[paste what you DON'T want, so Claude avoids it]</span></div>
+      </div>
+      <div class="tip" style="margin-top:12px;">
+        <strong>Why this works so well</strong>
+        Examples calibrate Claude faster than any description. Even one good example cuts misunderstandings by ~70%.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: CONSTRAINTS -->
+  <div class="section">
+    <div class="section-label">
+      <div class="step-num yellow">6</div>
+      <div class="section-title">Add Rules & Constraints</div>
+    </div>
+    <div class="card yellow">
+      <div class="field">
+        <div class="field-label"><span class="dot yellow"></span> Hard rules Claude must follow</div>
+        <div class="template-block"><span class="fill">## Rules</span>
+- Always <span class="fill">[required behavior]</span>
+- Never <span class="fill">[forbidden behavior]</span>
+- If you're unsure about X, <span class="fill">[ask / make a reasonable assumption and say so]</span>
+- If you can't complete the task, <span class="fill">[explain why / do your best]</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Full Template -->
+  <div class="full-template">
+    <div class="full-template-header">
+      <span>📋 Complete Prompt Template</span>
+      <button class="copy-btn" id="copyBtn" onclick="copyTemplate()">Copy Template</button>
+    </div>
+    <div class="full-template-body" id="templateText"><span class="comment"># ── ROLE ─────────────────────────────────────────────</span>
+<span class="key">You are</span> <span class="value">[expert role]</span> with experience in <span class="value">[domain]</span>.
+Your tone is <span class="value">[concise / detailed / friendly / technical]</span>.
+
+<span class="comment"># ── CONTEXT ──────────────────────────────────────────</span>
+<span class="key">Project:</span> <span class="value">[name]</span>
+<span class="key">What it does:</span> <span class="value">[1-2 sentence description]</span>
+<span class="key">Audience:</span> <span class="value">[who will use / read this]</span>
+<span class="key">Stage:</span> <span class="value">[idea / MVP / live / revision]</span>
+<span class="key">Constraints:</span> <span class="value">[time / tech stack / word count / etc.]</span>
+
+<span class="comment"># ── TASK ─────────────────────────────────────────────</span>
+<span class="key">Task:</span> <span class="value">[Write / Analyze / Fix / Plan / Review / Build]</span> <span class="value">[deliverable]</span>
+
+<span class="key">Include:</span> <span class="value">[what must appear in the output]</span>
+<span class="key">Exclude:</span> <span class="value">[what to leave out]</span>
+
+<span class="comment"># ── FORMAT ───────────────────────────────────────────</span>
+<span class="key">Format:</span> <span class="value">[bullet list / paragraphs / code / table / JSON]</span>
+<span class="key">Length:</span> <span class="value">[word count / number of items]</span>
+<span class="key">Tone:</span> <span class="value">[formal / casual / persuasive / instructional]</span>
+<span class="key">Reasoning:</span> <span class="value">[think step by step / just give the result]</span>
+
+<span class="comment"># ── EXAMPLES (optional) ──────────────────────────────</span>
+<span class="key">Good example:</span>
+<span class="value">[paste example of the output style you want]</span>
+
+<span class="comment"># ── RULES ────────────────────────────────────────────</span>
+- Always <span class="value">[required behavior]</span>
+- Never <span class="value">[forbidden behavior]</span>
+- If unsure, <span class="value">[ask / assume and flag it]</span>
+</div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Quick Tips -->
+  <div style="animation: fadeUp 0.7s ease both; animation-delay: 0.3s;">
+    <div class="h2">⚡ Quick Tips That Make a Big Difference</div>
+    <div class="tips-grid">
+      <div class="tip"><strong>Be specific about length</strong> "Around 200 words" works better than "short".</div>
+      <div class="tip"><strong>Paste in raw material</strong> Give Claude your notes, drafts, or data — it reasons over them well.</div>
+      <div class="tip"><strong>Ask for step-by-step thinking</strong> For complex tasks, add "think through this step by step" before answering.</div>
+      <div class="tip"><strong>Iterate, don't restart</strong> Say "refine the tone" or "make it more concise" rather than re-prompting from scratch.</div>
+      <div class="tip"><strong>Name what you don't want</strong> "Don't use jargon" or "avoid bullet points" is just as useful as saying what you do want.</div>
+      <div class="tip"><strong>Ask Claude to ask you</strong> End with "If anything is unclear, ask me before starting."</div>
+      <div class="tip"><strong>Split big tasks</strong> Break complex projects into steps. Do each in its own message.</div>
+      <div class="tip"><strong>Share the 'why'</strong> Context like "this is for a non-technical audience" changes output quality dramatically.</div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Real example -->
+  <div style="animation: fadeUp 0.7s ease both; animation-delay:0.35s;">
+    <div class="h2">📖 Real Example — Before &amp; After</div>
+    <div class="do-dont">
+      <div class="dont-box" style="padding:20px;">
+        <div class="label">✗ Weak prompt</div>
+        <p style="font-family:'DM Mono',monospace;line-height:1.7;">Write me an email about our new feature.</p>
+      </div>
+      <div class="do-box" style="padding:20px;">
+        <div class="label">✓ Strong prompt</div>
+        <p style="font-family:'DM Mono',monospace;line-height:1.7;font-size:12px;">You are a B2B SaaS copywriter.
+
+Project: Taskflow — a project management tool for remote teams.
+Audience: Existing paid users (non-technical, team leads).
+New feature: AI-generated weekly summaries of team progress.
+
+Task: Write a product announcement email.
+Include: What the feature does, why it saves time, one-click CTA to try it.
+Exclude: Technical details, pricing.
+
+Format: 3 short paragraphs + subject line.
+Tone: Warm and enthusiastic but professional.
+Length: Under 180 words.
+
+Never use the word "leverage".</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- PROMPT EVALUATOR -->
+  <div style="animation: fadeUp 0.7s ease both; animation-delay:0.4s;">
+    <div class="tag" style="margin-bottom:20px;">AI-Powered</div>
+    <div class="h2">🔍 Prompt Evaluator</div>
+    <p style="color:var(--soft);font-size:14px;line-height:1.6;margin-bottom:24px;">Paste your prompt below and get instant feedback on what's working, what's missing, and how to improve it.</p>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <!-- Input area -->
+      <div style="padding:20px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Your Prompt</div>
+        <textarea id="promptInput" placeholder="Paste your Claude prompt here..." style="
+          width:100%;
+          min-height:160px;
+          background:rgba(0,0,0,0.3);
+          border:1px solid rgba(255,255,255,0.07);
+          border-radius:8px;
+          padding:14px 16px;
+          font-family:'DM Mono',monospace;
+          font-size:13px;
+          line-height:1.7;
+          color:var(--text);
+          resize:vertical;
+          outline:none;
+          transition:border-color 0.2s;
+        " onfocus="this.style.borderColor='rgba(124,106,245,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.07)'"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+          <span id="charCount" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">0 characters</span>
+          <button onclick="evaluatePrompt()" id="evalBtn" style="
+            background:linear-gradient(135deg,rgba(124,106,245,0.2),rgba(124,106,245,0.1));
+            border:1px solid rgba(124,106,245,0.4);
+            color:var(--accent2);
+            font-family:'Syne',sans-serif;
+            font-size:13px;
+            font-weight:700;
+            padding:10px 24px;
+            border-radius:8px;
+            cursor:pointer;
+            transition:all 0.2s;
+            display:flex;align-items:center;gap:8px;
+          " onmouseover="this.style.background='rgba(124,106,245,0.25)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(124,106,245,0.2),rgba(124,106,245,0.1))'">
+            <span id="evalBtnIcon">✦</span> Evaluate Prompt
+          </button>
+        </div>
+      </div>
+
+      <!-- Results area -->
+      <div id="evalResults" style="display:none;padding:24px;">
+
+        <!-- Score bar -->
+        <div id="scoreSection" style="margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Overall Score</span>
+            <span id="scoreLabel" style="font-size:22px;font-weight:800;"></span>
+          </div>
+          <div style="background:rgba(0,0,0,0.3);border-radius:100px;height:8px;overflow:hidden;">
+            <div id="scoreBar" style="height:100%;border-radius:100px;transition:width 1s ease;width:0%;"></div>
+          </div>
+        </div>
+
+        <!-- Dimension scores -->
+        <div id="dimensionScores" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;"></div>
+
+        <!-- Feedback sections -->
+        <div id="strengthsSection" style="margin-bottom:16px;"></div>
+        <div id="improvementsSection" style="margin-bottom:16px;"></div>
+        <div id="rewriteSection"></div>
+
+      </div>
+
+      <!-- Loading state -->
+      <div id="evalLoading" style="display:none;padding:40px;text-align:center;">
+        <div style="display:inline-flex;flex-direction:column;align-items:center;gap:16px;">
+          <div id="loadingDots" style="display:flex;gap:6px;">
+            <div class="dot-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 1.2s ease-in-out infinite;"></div>
+            <div class="dot-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 1.2s ease-in-out 0.2s infinite;"></div>
+            <div class="dot-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 1.2s ease-in-out 0.4s infinite;"></div>
+          </div>
+          <span style="font-size:13px;color:var(--muted);">Analysing your prompt…</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:60px;color:var(--muted);font-size:12px;letter-spacing:0.05em;">
+    Made with Claude · Anthropic · claude.ai
+  </div>
+
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity:0.3; transform:scale(0.8); }
+  50% { opacity:1; transform:scale(1.1); }
+}
+</style>
+
+<script>
+// char counter
+document.getElementById('promptInput').addEventListener('input', function() {
+  document.getElementById('charCount').textContent = this.value.length + ' characters';
+});
+
+async function evaluatePrompt() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) {
+    alert('Please paste a prompt first.');
+    return;
+  }
+
+  const btn = document.getElementById('evalBtn');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  document.getElementById('evalResults').style.display = 'none';
+  document.getElementById('evalLoading').style.display = 'block';
+
+  const systemPrompt = `You are an expert prompt engineer who evaluates Claude prompts. Analyse the given prompt and return ONLY a valid JSON object with NO markdown formatting, no backticks, no explanation outside the JSON. The JSON must follow this exact schema:
+
+{
+  "score": <integer 0-100>,
+  "grade": "<A+ / A / B+ / B / C+ / C / D / F>",
+  "dimensions": {
+    "role": <0-100>,
+    "context": <0-100>,
+    "task_clarity": <0-100>,
+    "format": <0-100>,
+    "constraints": <0-100>
+  },
+  "strengths": ["<string>", "<string>"],
+  "improvements": [
+    { "area": "<short area name>", "issue": "<what is missing or weak>", "fix": "<specific actionable fix>" }
+  ],
+  "rewrite_tip": "<one key rewrite suggestion in 1-2 sentences>"
+}
+
+Scoring guide:
+- role: Does it define who Claude should act as?
+- context: Does it give project/background/audience info?
+- task_clarity: Is the deliverable specific and unambiguous?
+- format: Does it specify output structure, length, tone?
+- constraints: Does it include rules, dos/don'ts, edge cases?
+
+Be honest and specific. A vague prompt should score low. Return ONLY the JSON.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: `Evaluate this prompt:\n\n${prompt}` }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(i => i.text || "").join("").replace(/```json|```/g, "").trim();
+    const result = JSON.parse(text);
+    renderResults(result);
+  } catch(err) {
+    document.getElementById('evalLoading').style.display = 'none';
+    document.getElementById('evalResults').style.display = 'block';
+    document.getElementById('evalResults').innerHTML = `<div style="color:var(--accent3);font-size:14px;padding:8px 0;">Something went wrong. Please try again.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+function scoreColor(s) {
+  if (s >= 80) return '#34c7a4';
+  if (s >= 60) return '#e8c547';
+  return '#e05c5c';
+}
+
+function renderResults(r) {
+  document.getElementById('evalLoading').style.display = 'none';
+  document.getElementById('evalResults').style.display = 'block';
+
+  // Score bar
+  const col = scoreColor(r.score);
+  document.getElementById('scoreLabel').textContent = r.grade + '  —  ' + r.score + '/100';
+  document.getElementById('scoreLabel').style.color = col;
+  document.getElementById('scoreBar').style.width = r.score + '%';
+  document.getElementById('scoreBar').style.background = `linear-gradient(90deg, ${col}, ${col}99)`;
+
+  // Dimensions
+  const dimLabels = { role:'Role', context:'Context', task_clarity:'Task Clarity', format:'Format', constraints:'Constraints' };
+  let dimHtml = '';
+  for (const [key, val] of Object.entries(r.dimensions)) {
+    const c = scoreColor(val);
+    dimHtml += `<div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:18px;font-weight:800;color:${c};margin-bottom:4px;">${val}</div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">${dimLabels[key]||key}</div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:100px;height:3px;margin-top:8px;overflow:hidden;">
+        <div style="height:100%;width:${val}%;background:${c};border-radius:100px;"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('dimensionScores').innerHTML = dimHtml;
+
+  // Strengths
+  if (r.strengths && r.strengths.length) {
+    let sHtml = `<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#34c7a4;margin-bottom:10px;">✓ What's Working</div>`;
+    sHtml += r.strengths.map(s => `<div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;">
+      <span style="color:#34c7a4;margin-top:1px;flex-shrink:0;">✦</span>
+      <span style="font-size:13px;color:var(--soft);line-height:1.5;">${s}</span>
+    </div>`).join('');
+    document.getElementById('strengthsSection').innerHTML = `<div style="background:rgba(52,199,164,0.05);border:1px solid rgba(52,199,164,0.15);border-radius:10px;padding:16px;">${sHtml}</div>`;
+  }
+
+  // Improvements
+  if (r.improvements && r.improvements.length) {
+    let iHtml = `<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent3);margin-bottom:10px;">⚠ Areas for Improvement</div>`;
+    iHtml += r.improvements.map(imp => `
+      <div style="margin-bottom:12px;padding:14px;background:rgba(0,0,0,0.2);border-radius:8px;border-left:3px solid var(--accent3);">
+        <div style="font-size:12px;font-weight:700;color:var(--accent3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">${imp.area}</div>
+        <div style="font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:6px;">${imp.issue}</div>
+        <div style="font-size:12px;color:var(--accent);line-height:1.5;"><strong style="color:var(--text);">Fix:</strong> ${imp.fix}</div>
+      </div>`).join('');
+    document.getElementById('improvementsSection').innerHTML = `<div style="background:rgba(224,92,92,0.05);border:1px solid rgba(224,92,92,0.15);border-radius:10px;padding:16px;">${iHtml}</div>`;
+  }
+
+  // Rewrite tip
+  if (r.rewrite_tip) {
+    document.getElementById('rewriteSection').innerHTML = `
+      <div style="background:rgba(232,197,71,0.06);border:1px solid rgba(232,197,71,0.2);border-radius:10px;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:18px;flex-shrink:0;">💡</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Key Rewrite Tip</div>
+          <div style="font-size:13px;color:var(--soft);line-height:1.6;">${r.rewrite_tip}</div>
+        </div>
+      </div>`;
+  }
+}
+
+function copyTemplate() {
+  const raw = `# ── ROLE ─────────────────────────────────────────────
+You are [expert role] with experience in [domain].
+Your tone is [concise / detailed / friendly / technical].
+
+# ── CONTEXT ──────────────────────────────────────────
+Project: [name]
+What it does: [1-2 sentence description]
+Audience: [who will use / read this]
+Stage: [idea / MVP / live / revision]
+Constraints: [time / tech stack / word count / etc.]
+
+# ── TASK ─────────────────────────────────────────────
+Task: [Write / Analyze / Fix / Plan / Review / Build] [deliverable]
+
+Include: [what must appear in the output]
+Exclude: [what to leave out]
+
+# ── FORMAT ───────────────────────────────────────────
+Format: [bullet list / paragraphs / code / table / JSON]
+Length: [word count / number of items]
+Tone: [formal / casual / persuasive / instructional]
+Reasoning: [think step by step / just give the result]
+
+# ── EXAMPLES (optional) ──────────────────────────────
+Good example:
+[paste example of the output style you want]
+
+# ── RULES ────────────────────────────────────────────
+- Always [required behavior]
+- Never [forbidden behavior]
+- If unsure, [ask / assume and flag it]`;
+
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy Template';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>
